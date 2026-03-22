@@ -1,0 +1,24 @@
+services:
+  asr:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM python:3.11-slim
+        RUN apt-get update && apt-get install -y --no-install-recommends \
+            ffmpeg curl gnupg && rm -rf /var/lib/apt/lists/*
+        RUN curl -s https://install.zerotier.com | bash
+        RUN pip install --no-cache-dir flask openai-whisper
+        WORKDIR /app
+        COPY app.py entrypoint.sh ./
+        RUN chmod +x entrypoint.sh
+        ENTRYPOINT ["/app/entrypoint.sh"]
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    volumes:
+      - ./cache/whisper:/root/.cache/whisper
+      - ./cache/zerotier:/var/lib/zerotier-one
+    environment:
+      - ZT_NETWORK=af78bf94367e9ae4
+    restart: unless-stopped
